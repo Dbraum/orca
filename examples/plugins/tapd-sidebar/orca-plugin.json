@@ -1,0 +1,43 @@
+{
+  "manifestVersion": 2,
+  "id": "tapd-sidebar",
+  "name": "TAPD",
+  "version": "0.1.0",
+  "description": "Manage TAPD requirements, bugs and tasks in Orca's sidebar.",
+  "engines": {
+    "orca": ">=1.4.260"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "contributes": {
+    "panels": [
+      {
+        "id": "tapd-sidebar",
+        "title": "TAPD",
+        "icon": "file-text",
+        "entry": "panel/index.html"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "secrets:own"
+    },
+    {
+      "kind": "storage:own"
+    },
+    {
+      "kind": "workspace:read"
+    },
+    {
+      "kind": "workspace:write"
+    },
+    {
+      "kind": "workspace:create"
+    },
+    {
+      "kind": "agent:launch"
+    }
+  ],
+  "main": "worker.mjs"
+}
