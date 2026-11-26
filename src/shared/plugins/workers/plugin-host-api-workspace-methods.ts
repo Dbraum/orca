@@ -199,6 +199,12 @@ const agentLaunchResult = z.object({
   terminalId
 })
 
+const agentLaunchDefaultParams = agentLaunchParams.omit({ agent: true })
+const agentLaunchDefaultResult = z.discriminatedUnion('started', [
+  z.object({ started: z.literal(false) }),
+  z.object({ started: z.literal(true), terminalId: terminalId.optional() })
+])
+
 /** A `/`-separated path inside the workspace: not absolute, no `..`, no drive letter. */
 export function isPluginWorkspaceRelativePath(path: string): boolean {
   const segments = path.split(/[\\/]/)
@@ -302,6 +308,17 @@ export const PLUGIN_WORKSPACE_ACTIONS_API = {
     surfaces: WORKER_ONLY,
     params: agentLaunchParams,
     result: agentLaunchResult
+  }),
+  'agent.launchDefault': spec({
+    summary:
+      'Starts the default agent for a Git workspace in the background, using the workspace host and Orca’s new-workspace defaults. Requires the desktop app. Returns `started: false` when the default is blank or no agent is available. `terminalId` is present for a terminal launch.',
+    since: 11,
+    scope: 'any-workspace',
+    capability: 'agent:launch',
+    mutation: true,
+    surfaces: WORKER_ONLY,
+    params: agentLaunchDefaultParams,
+    result: agentLaunchDefaultResult
   }),
   'editor.open': spec({
     summary:

@@ -39,6 +39,7 @@ import { pickWorkspaceToShow } from './plugin-view-workspace-pick'
 import {
   openFolderWorkspace,
   openWorkspaceFile,
+  resolveWorkspaceDefaultAgent,
   runBuiltInAction
 } from './plugin-view-host-actions'
 
@@ -240,6 +241,8 @@ export async function handlePluginViewRequest(
         return runBuiltInAction(request)
       case 'open-folder-workspace':
         return openFolderWorkspace(request)
+      case 'resolve-default-agent':
+        return await resolveWorkspaceDefaultAgent(request)
       case 'end-capture': {
         endPluginShotReplay()
         usePluginViewCaptureStore.getState().end(request.captureId)

@@ -5,6 +5,7 @@ import { bind, type BoundPluginHostMethod } from './plugin-host-method-bind'
 import { PluginHostCallError } from './plugin-host-call-scope'
 import { claimPluginReplacedActionRun } from '../../commands/plugin-command-replacement-deadline'
 import { parseWorkspaceKey } from '../../../../shared/workspace/identity/workspace-scope'
+import { parseExecutionHostId } from '../../../../shared/execution-host/execution-host'
 import {
   pluginHostEffect as effect,
   pluginHostRenderer as renderer,
@@ -32,6 +33,9 @@ const terminalReadAnswer = z.object({
 })
 const agentLaunchAnswer = z.object({
   outcome: z.object({ kind: z.enum(['structured', 'terminal']), handle: z.string() })
+})
+const worktreeShowAnswer = z.object({
+  worktree: z.object({ repoId: z.string(), hostId: z.string() })
 })
 
 function failureDetail(error: unknown): string {
@@ -162,6 +166,43 @@ export const PLUGIN_WORKSPACE_ACTION_HANDLERS = {
       })
     }
     return { terminalId }
+  }),
+  'agent.launchDefault': bind(api['agent.launchDefault'], async ({ workspaceId, prompt }, ctx) => {
+    const { services, scope } = ctx
+    const desktop = renderer(services)
+    const worktree = workspaceSelector(workspaceId)
+    const { worktree: target } = worktreeShowAnswer.parse(
+      await rpc(services)(
+        'worktree.show',
+        { worktree },
+        scope.signal ? { signal: scope.signal } : {}
+      )
+    )
+    const host = parseExecutionHostId(target.hostId)
+    if (!host) {
+      throw new PluginHostCallError('unavailable', 'Orca could not resolve the workspace host')
+    }
+    const agent = await desktop.resolveDefaultAgent(workspaceId, target.repoId, host.id)
+    if (!agent) {
+      return { started: false as const }
+    }
+    const { outcome } = agentLaunchAnswer.parse(
+      await effect(ctx, 'agent.launch', {
+        target: { kind: 'existing', worktree },
+        agent,
+        presentation: 'background',
+        launchSource: 'plugin',
+        ...(prompt ? { prompt: { text: prompt, delivery: 'submit' } } : {})
+      })
+    )
+    if (outcome.kind === 'terminal') {
+      scope.assertActive()
+      if (!scope.signal?.aborted) {
+        recordPluginOpenedTerminal(ctx.pluginId, outcome.handle)
+      }
+      return { started: true as const, terminalId: outcome.handle }
+    }
+    return { started: true as const }
   }),
   'editor.open': bind(api['editor.open'], async ({ workspaceId, path }, { services, scope }) => {
     scope.assertActive()

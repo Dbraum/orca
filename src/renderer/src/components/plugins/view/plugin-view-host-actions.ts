@@ -11,6 +11,8 @@ import {
   selectWorktreesByRepo
 } from '@/store/workspaces/catalog/workspace-record-fields'
 import { parseWorkspaceKey } from '../../../../../shared/workspace/identity/workspace-scope'
+import { getResolvedExecutionHostIdForWorktree } from '@/lib/workspace/ownership/resolved-worktree-execution-host'
+import { resolveDefaultAgentForWorktree } from '@/lib/agent-session/launch/shortcuts/agent-tab-shortcuts'
 
 /** A plugin worker's `editor.open` and `commands.run`, run in this window. */
 
@@ -82,6 +84,31 @@ export function openFolderWorkspace(
   }
   state.setActiveFolderWorkspace(folderWorkspaceId)
   return { requestId, ok: true }
+}
+
+export async function resolveWorkspaceDefaultAgent(
+  request: Extract<PluginViewRequest, { kind: 'resolve-default-agent' }>
+): Promise<PluginViewReply> {
+  const { requestId, workspaceId, repoId, hostId } = request
+  // A plugin may have created this workspace in the background just before asking.
+  if (!resolveWorkspace(workspaceId)) {
+    await useAppStore
+      .getState()
+      .fetchWorktrees(repoId, { executionHostId: hostId, forceFresh: true })
+  }
+  const workspace = resolveWorkspace(workspaceId)
+  if (
+    !workspace ||
+    getResolvedExecutionHostIdForWorktree(useAppStore.getState(), workspace.id) !== hostId
+  ) {
+    return fail(
+      requestId,
+      'workspace_not_found',
+      'This window does not list the workspace on its host.'
+    )
+  }
+  const defaultAgent = await resolveDefaultAgentForWorktree(useAppStore.getState, workspace.id)
+  return { requestId, ok: true, defaultAgent }
 }
 
 // Rule: the raw built-in handler, never a wrapper that runs a plugin's replacement first, or a

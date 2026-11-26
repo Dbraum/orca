@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { isTuiAgent } from '../../../shared/agent-launch/catalog/tui-agent-config'
+import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import type { PluginViewReply } from '../../../shared/plugins/view/plugin-view-protocol'
 import {
   PLUGIN_SHOT_MAX_ACTS,
@@ -33,7 +35,8 @@ export const pluginViewReplySchema: z.ZodType<PluginViewReply> = z.union([
     requestId: z.string().max(128),
     ok: z.literal(true),
     panel: drawnPanelSchema.optional(),
-    restored: z.boolean().optional()
+    restored: z.boolean().optional(),
+    defaultAgent: z.custom<TuiAgent>(isTuiAgent).nullish()
   }),
   z.object({
     requestId: z.string().max(128),

@@ -26,7 +26,9 @@ export const PLUGIN_HOST_API_MINOR_SINCE: readonly string[] = [
   PLUGIN_HOST_API_1_7_SINCE,
   PLUGIN_HOST_API_1_8_SINCE,
   PLUGIN_HOST_API_1_9_SINCE,
-  PLUGIN_HOST_API_1_10_SINCE
+  PLUGIN_HOST_API_1_10_SINCE,
+  // Provisional floor for agent.launchDefault. Plugins can use host.has on older builds.
+  '1.4.278'
 ]
 
 /** `orca.host.has` arrived with manifest format 2; on older Orca a guard throws instead of answering. */
